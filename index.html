@@ -1,0 +1,1596 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>STAR AI Tracker — חברו Gmail וראו כמה אתם מוציאים על כלי AI</title>
+  <meta name="description" content="Star AI Tracker מחבר את Gmail בגישה לקריאה בלבד, מזהה מנויי כלי AI, ומציג הוצאות והמלצות חיסכון — לבעלי עסקים קטנים בישראל." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-deep: #07080f;
+      --bg: #0c0e1a;
+      --bg-elevated: #12152a;
+      --bg-card: rgba(22, 26, 48, 0.72);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-strong: rgba(255, 200, 100, 0.28);
+      --text: #f4f1ea;
+      --text-muted: #a8a5b8;
+      --accent: #f5b942;
+      --accent-hot: #ff8a3d;
+      --accent-soft: rgba(245, 185, 66, 0.14);
+      --teal: #3ddec7;
+      --coral: #ff6b6b;
+      --violet: #8b7cff;
+      --radius: 18px;
+      --shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+      --font: "Heebo", system-ui, -apple-system, "Segoe UI", sans-serif;
+      --nav-h: 72px;
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg-deep);
+      color: var(--text);
+      line-height: 1.65;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    img, svg { display: block; max-width: 100%; }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+    ul { list-style: none; }
+
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+    }
+
+    /* ===== Ambient stage ===== */
+    .scene-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% -10%, rgba(245, 185, 66, 0.18), transparent 55%),
+        radial-gradient(ellipse 60% 40% at 90% 10%, rgba(61, 222, 199, 0.1), transparent 50%),
+        radial-gradient(ellipse 50% 60% at 50% 100%, rgba(139, 124, 255, 0.08), transparent 55%),
+        var(--bg-deep);
+    }
+
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(60px);
+      opacity: 0.55;
+      will-change: transform;
+      animation: orbFloat 18s var(--ease) infinite alternate;
+    }
+    .orb-1 {
+      width: 420px; height: 420px;
+      background: radial-gradient(circle, rgba(245,185,66,0.55), transparent 70%);
+      top: -80px; right: -60px;
+      animation-duration: 22s;
+    }
+    .orb-2 {
+      width: 360px; height: 360px;
+      background: radial-gradient(circle, rgba(61,222,199,0.35), transparent 70%);
+      bottom: 20%; left: -100px;
+      animation-duration: 26s;
+      animation-delay: -4s;
+    }
+    .orb-3 {
+      width: 280px; height: 280px;
+      background: radial-gradient(circle, rgba(139,124,255,0.4), transparent 70%);
+      top: 45%; right: 10%;
+      animation-duration: 20s;
+      animation-delay: -8s;
+    }
+
+    @keyframes orbFloat {
+      0% { transform: translate3d(0, 0, 0) scale(1); }
+      100% { transform: translate3d(-40px, 50px, 0) scale(1.12); }
+    }
+
+    .grid-floor {
+      position: absolute;
+      inset: auto 0 -20% 0;
+      height: 55vh;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 60px 60px;
+      transform: perspective(600px) rotateX(62deg);
+      transform-origin: center top;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.45), transparent);
+      opacity: 0.5;
+    }
+
+    .page { position: relative; z-index: 1; }
+
+    .container {
+      width: min(1120px, calc(100% - 2rem));
+      margin-inline: auto;
+    }
+
+    /* ===== Nav ===== */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      height: var(--nav-h);
+      display: flex;
+      align-items: center;
+      backdrop-filter: blur(16px) saturate(1.2);
+      -webkit-backdrop-filter: blur(16px) saturate(1.2);
+      background: rgba(7, 8, 15, 0.72);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      width: 100%;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      font-size: 1.05rem;
+    }
+    .logo-mark {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-hot));
+      display: grid;
+      place-items: center;
+      box-shadow: 0 8px 24px rgba(245, 185, 66, 0.35);
+      transform-style: preserve-3d;
+      animation: logoPulse 4s ease-in-out infinite;
+    }
+    .logo-mark svg { width: 20px; height: 20px; }
+    @keyframes logoPulse {
+      0%, 100% { transform: translateZ(0) scale(1); }
+      50% { transform: translateZ(12px) scale(1.04); }
+    }
+    .nav-links {
+      display: none;
+      gap: 1.5rem;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+    .nav-links a:hover { color: var(--text); }
+    @media (min-width: 860px) {
+      .nav-links { display: flex; }
+    }
+
+    /* ===== Buttons ===== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.85rem 1.35rem;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease), background 0.2s;
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hot) 100%);
+      color: #1a1205;
+      box-shadow: 0 10px 30px rgba(245, 185, 66, 0.35), inset 0 1px 0 rgba(255,255,255,0.35);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 16px 40px rgba(245, 185, 66, 0.45);
+    }
+    .btn-primary:active { transform: translateY(0) scale(0.99); }
+    .btn-ghost {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-ghost:hover {
+      border-color: var(--border-strong);
+      background: var(--accent-soft);
+    }
+    .btn-lg { padding: 1.05rem 1.75rem; font-size: 1.05rem; }
+    .btn-sm { padding: 0.65rem 1.1rem; font-size: 0.88rem; }
+
+    /* ===== Hero ===== */
+    .hero {
+      padding: 3.5rem 0 4rem;
+      perspective: 1200px;
+    }
+    .hero-grid {
+      display: grid;
+      gap: 3rem;
+      align-items: center;
+    }
+    @media (min-width: 960px) {
+      .hero-grid {
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: 2.5rem;
+      }
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.85rem;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      border: 1px solid var(--border-strong);
+      color: var(--accent);
+      font-size: 0.82rem;
+      font-weight: 600;
+      margin-bottom: 1.25rem;
+    }
+    .eyebrow-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent);
+      animation: blink 2s ease-in-out infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.35; }
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3.35rem);
+      font-weight: 900;
+      line-height: 1.18;
+      letter-spacing: -0.02em;
+      margin-bottom: 1.15rem;
+    }
+    .hero h1 .highlight {
+      background: linear-gradient(120deg, var(--accent), var(--accent-hot), #ffe08a);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .hero-sub {
+      font-size: clamp(1.05rem, 2.2vw, 1.2rem);
+      color: var(--text-muted);
+      max-width: 36rem;
+      margin-bottom: 1.75rem;
+    }
+    .hero-ctas {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.85rem;
+      margin-bottom: 1.5rem;
+    }
+    .hero-note {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1.25rem;
+    }
+    .hero-note span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .hero-note svg { width: 16px; height: 16px; color: var(--teal); flex-shrink: 0; }
+
+    /* 3D dashboard stage */
+    .stage-3d {
+      position: relative;
+      height: min(520px, 70vw);
+      min-height: 380px;
+      perspective: 1400px;
+      transform-style: preserve-3d;
+    }
+    .stage-glow {
+      position: absolute;
+      inset: 15% 10%;
+      background: radial-gradient(circle, rgba(245,185,66,0.22), transparent 65%);
+      filter: blur(30px);
+      animation: glowPulse 5s ease-in-out infinite;
+    }
+    @keyframes glowPulse {
+      0%, 100% { opacity: 0.6; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.08); }
+    }
+    .dash-scene {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      transform-style: preserve-3d;
+      transform: rotateY(-12deg) rotateX(8deg);
+      animation: sceneIdle 10s ease-in-out infinite alternate;
+      transition: transform 0.4s var(--ease);
+    }
+    @keyframes sceneIdle {
+      0% { transform: rotateY(-14deg) rotateX(10deg) translateZ(0); }
+      100% { transform: rotateY(-6deg) rotateX(4deg) translateZ(20px); }
+    }
+    .dash-card {
+      position: absolute;
+      background: linear-gradient(160deg, rgba(30, 34, 58, 0.95), rgba(16, 18, 36, 0.92));
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,0.06);
+      backdrop-filter: blur(12px);
+      transform-style: preserve-3d;
+      will-change: transform;
+    }
+    .dash-main {
+      width: min(340px, 78%);
+      padding: 1.25rem;
+      z-index: 3;
+      animation: floatMain 7s ease-in-out infinite;
+    }
+    .dash-side {
+      width: min(180px, 42%);
+      padding: 1rem;
+      z-index: 2;
+      animation: floatSide 8s ease-in-out infinite;
+    }
+    .dash-side-a {
+      top: 8%;
+      left: 2%;
+      transform: translateZ(40px) rotateY(18deg);
+      animation-delay: -1.5s;
+    }
+    .dash-side-b {
+      bottom: 10%;
+      right: 0;
+      transform: translateZ(55px) rotateY(-12deg);
+      animation-delay: -3s;
+    }
+    .dash-chip {
+      width: min(140px, 34%);
+      padding: 0.75rem 0.9rem;
+      z-index: 4;
+      top: 42%;
+      right: 4%;
+      transform: translateZ(90px);
+      animation: floatChip 6s ease-in-out infinite;
+      border-color: var(--border-strong);
+      background: linear-gradient(145deg, rgba(245,185,66,0.18), rgba(22,26,48,0.9));
+    }
+    @keyframes floatMain {
+      0%, 100% { transform: translateY(0) translateZ(20px); }
+      50% { transform: translateY(-14px) translateZ(35px); }
+    }
+    @keyframes floatSide {
+      0%, 100% { transform: translateY(0) translateZ(40px) rotateY(18deg); }
+      50% { transform: translateY(12px) translateZ(55px) rotateY(14deg); }
+    }
+    .dash-side-b { animation-name: floatSideB; }
+    @keyframes floatSideB {
+      0%, 100% { transform: translateY(0) translateZ(55px) rotateY(-12deg); }
+      50% { transform: translateY(-16px) translateZ(70px) rotateY(-8deg); }
+    }
+    @keyframes floatChip {
+      0%, 100% { transform: translateY(0) translateZ(90px) scale(1); }
+      50% { transform: translateY(-10px) translateZ(110px) scale(1.03); }
+    }
+
+    .dash-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+    .dash-badge {
+      padding: 0.2rem 0.55rem;
+      border-radius: 6px;
+      background: rgba(61,222,199,0.15);
+      color: var(--teal);
+      font-weight: 600;
+      font-size: 0.7rem;
+    }
+    .dash-metric-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 0.25rem;
+    }
+    .dash-metric-value {
+      font-size: 1.85rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(120deg, #fff, var(--accent));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .dash-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      height: 72px;
+      margin-top: 1.1rem;
+    }
+    .dash-bars span {
+      flex: 1;
+      border-radius: 6px 6px 2px 2px;
+      background: linear-gradient(to top, var(--accent-hot), var(--accent));
+      opacity: 0.85;
+      animation: barGrow 3.5s ease-in-out infinite alternate;
+      transform-origin: bottom;
+    }
+    .dash-bars span:nth-child(1) { height: 40%; animation-delay: 0s; }
+    .dash-bars span:nth-child(2) { height: 65%; animation-delay: 0.2s; }
+    .dash-bars span:nth-child(3) { height: 48%; animation-delay: 0.4s; }
+    .dash-bars span:nth-child(4) { height: 88%; animation-delay: 0.1s; }
+    .dash-bars span:nth-child(5) { height: 55%; animation-delay: 0.35s; }
+    .dash-bars span:nth-child(6) { height: 72%; animation-delay: 0.15s; }
+    @keyframes barGrow {
+      0% { transform: scaleY(0.85); opacity: 0.7; }
+      100% { transform: scaleY(1.05); opacity: 1; }
+    }
+    .tool-row {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      padding: 0.45rem 0;
+      font-size: 0.78rem;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .tool-row:last-child { border-bottom: none; }
+    .tool-ico {
+      width: 22px; height: 22px; border-radius: 6px;
+      display: grid; place-items: center;
+      font-size: 0.65rem; font-weight: 800; color: #1a1205;
+    }
+    .tool-ico.c { background: #74aa9c; }
+    .tool-ico.a { background: #d97757; }
+    .tool-ico.m { background: #9b7bff; }
+    .tool-name { flex: 1; color: var(--text-muted); }
+    .tool-amt { font-weight: 700; font-size: 0.8rem; }
+    .chip-title { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.2rem; }
+    .chip-val { font-size: 1.15rem; font-weight: 800; color: var(--accent); }
+    .example-tag {
+      display: inline-block;
+      margin-top: 0.55rem;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      opacity: 0.85;
+    }
+
+    /* ===== Metrics strip ===== */
+    .metrics {
+      padding: 0.5rem 0 3.5rem;
+    }
+    .metrics-strip {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.85rem;
+      padding: 1.25rem;
+      border-radius: var(--radius);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      transform-style: preserve-3d;
+      position: relative;
+    }
+    @media (min-width: 720px) {
+      .metrics-strip { grid-template-columns: repeat(4, 1fr); gap: 1rem; padding: 1.5rem; }
+    }
+    .metric-item {
+      text-align: center;
+      padding: 0.75rem;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.02);
+      transition: transform 0.35s var(--ease);
+    }
+    .metric-item:hover { transform: translateY(-6px) translateZ(20px); }
+    .metric-num {
+      font-size: clamp(1.35rem, 3vw, 1.75rem);
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: -0.02em;
+    }
+    .metric-label {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+    .metrics-caption {
+      text-align: center;
+      margin-top: 0.85rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* ===== Sections common ===== */
+    section { padding: 4rem 0; }
+    .section-label {
+      display: inline-block;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.04em;
+      margin-bottom: 0.75rem;
+      text-transform: uppercase;
+    }
+    .section-title {
+      font-size: clamp(1.65rem, 3.5vw, 2.35rem);
+      font-weight: 800;
+      line-height: 1.25;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.85rem;
+    }
+    .section-lead {
+      color: var(--text-muted);
+      font-size: 1.05rem;
+      max-width: 40rem;
+      margin-bottom: 2.25rem;
+    }
+    .center { text-align: center; }
+    .center .section-lead { margin-inline: auto; }
+
+    /* ===== Before / After ===== */
+    .compare {
+      display: grid;
+      gap: 1.25rem;
+    }
+    @media (min-width: 760px) {
+      .compare { grid-template-columns: 1fr auto 1fr; align-items: stretch; }
+    }
+    .compare-card {
+      padding: 1.75rem;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      transform-style: preserve-3d;
+      transition: transform 0.4s var(--ease), box-shadow 0.4s;
+      position: relative;
+      overflow: hidden;
+    }
+    .compare-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.03));
+      pointer-events: none;
+    }
+    .compare-card:hover {
+      transform: translateY(-8px) rotateX(2deg);
+      box-shadow: 0 28px 50px rgba(0,0,0,0.4);
+    }
+    .compare-card.before { border-color: rgba(255,107,107,0.25); }
+    .compare-card.after { border-color: rgba(61,222,199,0.3); }
+    .compare-tag {
+      display: inline-flex;
+      padding: 0.3rem 0.7rem;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+    .before .compare-tag { background: rgba(255,107,107,0.15); color: var(--coral); }
+    .after .compare-tag { background: rgba(61,222,199,0.15); color: var(--teal); }
+    .compare-card h3 {
+      font-size: 1.2rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+    }
+    .compare-list li {
+      display: flex;
+      gap: 0.65rem;
+      align-items: flex-start;
+      padding: 0.45rem 0;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+    .compare-list li svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; }
+    .before .compare-list li svg { color: var(--coral); }
+    .after .compare-list li svg { color: var(--teal); }
+    .compare-vs {
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 0.9rem;
+      color: var(--accent);
+      width: 48px;
+      height: 48px;
+      margin: 0.5rem auto;
+      border-radius: 50%;
+      background: var(--accent-soft);
+      border: 1px solid var(--border-strong);
+      align-self: center;
+      animation: vsSpin 12s linear infinite;
+    }
+    @keyframes vsSpin {
+      0% { transform: rotateY(0deg); }
+      100% { transform: rotateY(360deg); }
+    }
+
+    /* ===== Audience ===== */
+    .audience-grid {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: 1fr;
+    }
+    @media (min-width: 640px) {
+      .audience-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (min-width: 960px) {
+      .audience-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+    .audience-card {
+      padding: 1.5rem;
+      border-radius: var(--radius);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      transform-style: preserve-3d;
+      transition: transform 0.35s var(--ease), border-color 0.25s;
+      position: relative;
+    }
+    .audience-card:hover {
+      transform: translateY(-10px) rotateX(4deg) rotateY(-3deg);
+      border-color: var(--border-strong);
+    }
+    .audience-icon {
+      width: 48px; height: 48px;
+      border-radius: 14px;
+      display: grid; place-items: center;
+      margin-bottom: 1rem;
+      background: var(--accent-soft);
+      border: 1px solid var(--border-strong);
+    }
+    .audience-icon svg { width: 24px; height: 24px; color: var(--accent); }
+    .audience-card h3 {
+      font-size: 1.05rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+    }
+    .audience-card p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    /* ===== How it works ===== */
+    .steps {
+      display: grid;
+      gap: 1.25rem;
+    }
+    @media (min-width: 800px) {
+      .steps { grid-template-columns: repeat(3, 1fr); }
+    }
+    .step {
+      padding: 1.75rem 1.5rem;
+      border-radius: var(--radius);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.35s var(--ease);
+      overflow: hidden;
+    }
+    .step:hover { transform: translateY(-8px) translateZ(16px); }
+    .step-num {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      display: grid; place-items: center;
+      font-weight: 900;
+      font-size: 1.15rem;
+      background: linear-gradient(135deg, var(--accent), var(--accent-hot));
+      color: #1a1205;
+      margin-bottom: 1.15rem;
+      box-shadow: 0 10px 24px rgba(245,185,66,0.3);
+      animation: stepBounce 5s ease-in-out infinite;
+    }
+    .step:nth-child(2) .step-num { animation-delay: 0.4s; }
+    .step:nth-child(3) .step-num { animation-delay: 0.8s; }
+    @keyframes stepBounce {
+      0%, 100% { transform: translateZ(0); }
+      50% { transform: translateZ(18px) scale(1.05); }
+    }
+    .step h3 {
+      font-size: 1.15rem;
+      font-weight: 800;
+      margin-bottom: 0.55rem;
+    }
+    .step p { color: var(--text-muted); font-size: 0.95rem; }
+
+    /* ===== Features / What you get ===== */
+    .features-layout {
+      display: grid;
+      gap: 2rem;
+    }
+    @media (min-width: 900px) {
+      .features-layout {
+        grid-template-columns: 1fr 1fr;
+        align-items: center;
+      }
+    }
+    .feature-list { display: grid; gap: 1rem; }
+    .feature-item {
+      display: flex;
+      gap: 1rem;
+      padding: 1.15rem 1.25rem;
+      border-radius: 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      transition: transform 0.3s var(--ease), border-color 0.25s;
+    }
+    .feature-item:hover {
+      transform: translateX(-6px);
+      border-color: var(--border-strong);
+    }
+    .feature-icon {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      flex-shrink: 0;
+      display: grid; place-items: center;
+      background: var(--accent-soft);
+    }
+    .feature-icon svg { width: 20px; height: 20px; color: var(--accent); }
+    .feature-item h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.25rem; }
+    .feature-item p { font-size: 0.88rem; color: var(--text-muted); }
+
+    .value-panel {
+      padding: 1.75rem;
+      border-radius: var(--radius);
+      background: linear-gradient(165deg, rgba(30,34,58,0.95), rgba(12,14,26,0.98));
+      border: 1px solid var(--border-strong);
+      box-shadow: var(--shadow);
+      transform: perspective(900px) rotateY(6deg) rotateX(3deg);
+      transition: transform 0.4s var(--ease);
+      position: relative;
+      overflow: hidden;
+    }
+    .value-panel:hover { transform: perspective(900px) rotateY(0deg) rotateX(0deg) scale(1.02); }
+    .value-panel::after {
+      content: "";
+      position: absolute;
+      top: -40%; left: -20%;
+      width: 60%; height: 80%;
+      background: radial-gradient(circle, rgba(245,185,66,0.12), transparent 70%);
+      pointer-events: none;
+      animation: panelShine 8s ease-in-out infinite;
+    }
+    @keyframes panelShine {
+      0%, 100% { transform: translate(0,0); opacity: 0.5; }
+      50% { transform: translate(40%, 30%); opacity: 1; }
+    }
+    .value-panel h3 {
+      font-size: 1.2rem;
+      font-weight: 800;
+      margin-bottom: 1.25rem;
+      position: relative;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.85rem 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      position: relative;
+    }
+    .stat-row:last-of-type { border-bottom: none; }
+    .stat-row .label { color: var(--text-muted); font-size: 0.92rem; }
+    .stat-row .val { font-weight: 800; font-size: 1.1rem; color: var(--accent); }
+    .panel-note {
+      margin-top: 1rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      position: relative;
+    }
+
+    /* ===== Privacy ===== */
+    .privacy-box {
+      display: grid;
+      gap: 1.5rem;
+      padding: 2rem;
+      border-radius: calc(var(--radius) + 4px);
+      background: linear-gradient(145deg, rgba(61,222,199,0.08), rgba(22,26,48,0.8));
+      border: 1px solid rgba(61,222,199,0.25);
+      position: relative;
+      overflow: hidden;
+    }
+    @media (min-width: 800px) {
+      .privacy-box { grid-template-columns: 1fr 1.2fr; align-items: center; }
+    }
+    .privacy-box::before {
+      content: "";
+      position: absolute;
+      width: 200px; height: 200px;
+      border-radius: 50%;
+      background: rgba(61,222,199,0.15);
+      filter: blur(50px);
+      top: -40px; left: -40px;
+      animation: orbFloat 14s ease-in-out infinite alternate;
+    }
+    .privacy-points { display: grid; gap: 0.85rem; position: relative; }
+    .privacy-point {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+      font-size: 0.95rem;
+      color: var(--text-muted);
+    }
+    .privacy-point strong { color: var(--text); display: block; margin-bottom: 0.15rem; }
+    .privacy-point svg {
+      width: 22px; height: 22px;
+      color: var(--teal);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    /* ===== FAQ ===== */
+    .faq-list {
+      max-width: 720px;
+      margin-inline: auto;
+      display: grid;
+      gap: 0.75rem;
+    }
+    .faq-item {
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      overflow: hidden;
+      transition: border-color 0.25s;
+    }
+    .faq-item[open], .faq-item.is-open {
+      border-color: var(--border-strong);
+    }
+    .faq-q {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1.15rem 1.25rem;
+      text-align: right;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+    .faq-q:hover { color: var(--accent); }
+    .faq-icon {
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.05);
+      display: grid; place-items: center;
+      flex-shrink: 0;
+      transition: transform 0.3s var(--ease), background 0.25s;
+    }
+    .faq-item.is-open .faq-icon {
+      transform: rotate(45deg);
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+    .faq-a {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s var(--ease), padding 0.3s;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      padding: 0 1.25rem;
+    }
+    .faq-item.is-open .faq-a {
+      max-height: 320px;
+      padding: 0 1.25rem 1.25rem;
+    }
+
+    /* ===== Final CTA ===== */
+    .final-cta {
+      padding: 2rem 0 4rem;
+    }
+    .final-card {
+      text-align: center;
+      padding: 3rem 1.75rem;
+      border-radius: calc(var(--radius) + 6px);
+      background:
+        radial-gradient(ellipse at 50% 0%, rgba(245,185,66,0.2), transparent 55%),
+        linear-gradient(160deg, rgba(30,34,58,0.95), rgba(10,12,22,0.98));
+      border: 1px solid var(--border-strong);
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+      transform-style: preserve-3d;
+    }
+    .final-card .orb-mini {
+      position: absolute;
+      width: 180px; height: 180px;
+      border-radius: 50%;
+      filter: blur(40px);
+      background: rgba(245,185,66,0.25);
+      top: -60px; right: 10%;
+      animation: orbFloat 10s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+    .final-card h2 {
+      font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+      font-weight: 900;
+      margin-bottom: 0.85rem;
+      position: relative;
+    }
+    .final-card p {
+      color: var(--text-muted);
+      max-width: 32rem;
+      margin: 0 auto 1.75rem;
+      position: relative;
+    }
+    .final-card .hero-ctas {
+      justify-content: center;
+      position: relative;
+    }
+
+    /* ===== Footer ===== */
+    .footer {
+      padding: 2.5rem 0 3rem;
+      border-top: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.88rem;
+    }
+    .footer-inner {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      align-items: center;
+      text-align: center;
+    }
+    @media (min-width: 720px) {
+      .footer-inner {
+        flex-direction: row;
+        justify-content: space-between;
+        text-align: right;
+        align-items: flex-start;
+      }
+    }
+    .footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem 1.5rem;
+      justify-content: center;
+    }
+    .footer-links a:hover { color: var(--accent); }
+    .footer-disclaimer {
+      max-width: 36rem;
+      font-size: 0.8rem;
+      line-height: 1.55;
+      opacity: 0.85;
+    }
+
+    /* Sticky mobile CTA */
+    .sticky-cta {
+      position: fixed;
+      bottom: 0;
+      inset-inline: 0;
+      z-index: 90;
+      padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+      background: rgba(7, 8, 15, 0.9);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: center;
+      transform: translateY(110%);
+      transition: transform 0.35s var(--ease);
+    }
+    .sticky-cta.visible { transform: translateY(0); }
+    .sticky-cta .btn { width: min(100%, 420px); }
+    @media (min-width: 860px) {
+      .sticky-cta { display: none; }
+    }
+    body.has-sticky { padding-bottom: 80px; }
+
+    /* Reveal on scroll */
+    .reveal {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 0.7s var(--ease), transform 0.7s var(--ease);
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ===== Reduced motion ===== */
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .orb, .logo-mark, .dash-scene, .dash-main, .dash-side, .dash-chip,
+      .dash-bars span, .stage-glow, .compare-vs, .step-num, .value-panel::after,
+      .final-card .orb-mini, .privacy-box::before, .eyebrow-dot {
+        animation: none !important;
+      }
+      .dash-scene { transform: rotateY(-8deg) rotateX(4deg); }
+      .reveal { opacity: 1; transform: none; transition: none; }
+      .btn-primary:hover, .metric-item:hover, .compare-card:hover,
+      .audience-card:hover, .step:hover, .feature-item:hover, .value-panel:hover {
+        transform: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="scene-bg" aria-hidden="true">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div class="grid-floor"></div>
+  </div>
+
+  <div class="page">
+    <!-- Nav -->
+    <header class="nav">
+      <div class="container nav-inner">
+        <a href="#top" class="logo" aria-label="STAR AI — דף הבית">
+          <span class="logo-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.4 7.2H22l-6 4.8 2.3 7L12 16.8 5.7 21l2.3-7-6-4.8h7.6L12 2z" fill="#1a1205"/></svg>
+          </span>
+          STAR AI
+        </a>
+        <nav class="nav-links" aria-label="ניווט ראשי">
+          <a href="#how">איך זה עובד</a>
+          <a href="#for-who">למי זה מתאים</a>
+          <a href="#privacy">פרטיות</a>
+          <a href="#faq">שאלות נפוצות</a>
+        </nav>
+        <a class="btn btn-primary btn-sm" href="https://star-ai.co.il/" rel="noopener">חיבור Gmail</a>
+      </div>
+    </header>
+
+    <main id="top">
+      <!-- Hero -->
+      <section class="hero">
+        <div class="container hero-grid">
+          <div>
+            <div class="eyebrow">
+              <span class="eyebrow-dot" aria-hidden="true"></span>
+              Star AI Tracker · לבעלי עסקים בישראל
+            </div>
+            <h1>
+              כמה באמת אתם מוציאים על כלי AI?
+              <span class="highlight">תנו ל־Gmail לספר את הסיפור.</span>
+            </h1>
+            <p class="hero-sub">
+              מחברים Gmail בגישה לקריאה בלבד — Star AI מזהה מנויי כלי AI מהחשבוניות והקבלות,
+              ומציג תמונת הוצאות ברורה + איפה אפשר לחסוך מחפיפות ומנויים שלא בשימוש.
+            </p>
+            <div class="hero-ctas">
+              <a class="btn btn-primary btn-lg" href="https://star-ai.co.il/" rel="noopener">
+                חיבור Gmail ובדיקת ההוצאות
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </a>
+              <a class="btn btn-ghost btn-lg" href="#how">איך זה עובד</a>
+            </div>
+            <div class="hero-note">
+              <span>
+                <svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="2"/></svg>
+                קריאה בלבד · לא משנים מיילים
+              </span>
+              <span>
+                <svg viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                רק חשבוניות/קבלות של כלי AI
+              </span>
+            </div>
+          </div>
+
+          <!-- 3D dashboard mock -->
+          <div class="stage-3d" id="dash-stage" aria-hidden="true">
+            <div class="stage-glow"></div>
+            <div class="dash-scene" id="dash-scene">
+              <div class="dash-card dash-side dash-side-a">
+                <div class="dash-metric-label">כלים שזוהו</div>
+                <div class="dash-metric-value" style="font-size:1.5rem">12</div>
+                <div class="tool-row"><span class="tool-ico c">C</span><span class="tool-name">ChatGPT</span><span class="tool-amt">₪…</span></div>
+                <div class="tool-row"><span class="tool-ico a">A</span><span class="tool-name">Claude</span><span class="tool-amt">₪…</span></div>
+                <div class="tool-row"><span class="tool-ico m">M</span><span class="tool-name">Midjourney</span><span class="tool-amt">₪…</span></div>
+                <span class="example-tag">דוגמה להמחשה</span>
+              </div>
+
+              <div class="dash-card dash-main">
+                <div class="dash-header">
+                  <span>לוח בקרה · הוצאות AI</span>
+                  <span class="dash-badge">דוגמה</span>
+                </div>
+                <div class="dash-metric-label">הוצאה חודשית (דוגמה)</div>
+                <div class="dash-metric-value">₪1,200</div>
+                <div class="dash-bars" aria-hidden="true">
+                  <span></span><span></span><span></span><span></span><span></span><span></span>
+                </div>
+                <span class="example-tag">מספרים לדוגמה בלבד — לא נתונים אישיים</span>
+              </div>
+
+              <div class="dash-card dash-side dash-side-b">
+                <div class="dash-metric-label">שנתי (דוגמה)</div>
+                <div class="dash-metric-value" style="font-size:1.35rem">₪14,400</div>
+                <p style="font-size:0.72rem;color:var(--text-muted);margin-top:0.5rem">תמונה אחת במקום עשרות מיילים</p>
+              </div>
+
+              <div class="dash-card dash-chip">
+                <div class="chip-title">חיסכון אפשרי</div>
+                <div class="chip-val">₪1,270</div>
+                <span class="example-tag">מחפיפות · דוגמה</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Example metrics -->
+      <section class="metrics" aria-labelledby="metrics-heading">
+        <div class="container">
+          <h2 id="metrics-heading" class="sr-only">מספרי דוגמה מהדשבורד</h2>
+          <div class="metrics-strip reveal">
+            <div class="metric-item">
+              <div class="metric-num">₪1,200</div>
+              <div class="metric-label">הוצאה חודשית (דוגמה)</div>
+            </div>
+            <div class="metric-item">
+              <div class="metric-num">₪14,400</div>
+              <div class="metric-label">הוצאה שנתית (דוגמה)</div>
+            </div>
+            <div class="metric-item">
+              <div class="metric-num">12</div>
+              <div class="metric-label">כלי AI שזוהו (דוגמה)</div>
+            </div>
+            <div class="metric-item">
+              <div class="metric-num">₪1,270</div>
+              <div class="metric-label">חיסכון אפשרי מחפיפות (דוגמה)</div>
+            </div>
+          </div>
+          <p class="metrics-caption">המספרים למעלה הם דוגמאות להמחשה בלבד — התוצאות שלכם תלויות במיילים ובמנויים שלכם.</p>
+        </div>
+      </section>
+
+      <!-- Pain / before-after -->
+      <section id="pain" aria-labelledby="pain-title">
+        <div class="container">
+          <div class="center reveal">
+            <span class="section-label">לפני ואחרי</span>
+            <h2 class="section-title" id="pain-title">מבלגן של חשבוניות — לתמונה אחת ברורה</h2>
+            <p class="section-lead">כשמשלמים על ChatGPT, Claude, Midjourney, Canva ועוד — קל לאבד מעקב. Star AI מרכז את מה שחשוב.</p>
+          </div>
+          <div class="compare reveal">
+            <div class="compare-card before">
+              <span class="compare-tag">בלי Star AI</span>
+              <h3>כאוס של מנויים</h3>
+              <ul class="compare-list">
+                <li>
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                  חשבוניות מפוזרות ב־Gmail — קשה לדעת כמה יוצא באמת
+                </li>
+                <li>
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                  חפיפות בין כלים דומים בלי לשים לב
+                </li>
+                <li>
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                  מנויים שלא בשימוש ממשיכים לרדת מהכרטיס
+                </li>
+              </ul>
+            </div>
+            <div class="compare-vs" aria-hidden="true">←</div>
+            <div class="compare-card after">
+              <span class="compare-tag">עם Star AI Tracker</span>
+              <h3>דשבורד אחד</h3>
+              <ul class="compare-list">
+                <li>
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  זיהוי אוטומטי של חשבוניות כלי AI מהמייל
+                </li>
+                <li>
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  תמונת הוצאות חודשית ושנתית במקום אחד
+                </li>
+                <li>
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  המלצות חיסכון מחפיפות ומנויים מיותרים
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Who it's for -->
+      <section id="for-who" aria-labelledby="for-who-title">
+        <div class="container">
+          <div class="center reveal">
+            <span class="section-label">למי זה מתאים</span>
+            <h2 class="section-title" id="for-who-title">בשביל מי שמשלם על הרבה כלי AI — ויודע שזה בורח</h2>
+            <p class="section-lead">מיועד בעיקר לעצמאים ובעלי עסקים קטנים בישראל שחיים בין כלים — ורוצים שליטה בהוצאות.</p>
+          </div>
+          <div class="audience-grid reveal">
+            <article class="audience-card">
+              <div class="audience-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M3 21V8l9-5 9 5v13M9 21v-8h6v8" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+              </div>
+              <h3>בעלי עסקים קטנים</h3>
+              <p>מנהלים כמה מנויי AI לעסק ורוצים לראות את התמונה המלאה בלי אקסלים.</p>
+            </article>
+            <article class="audience-card">
+              <div class="audience-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M12 12a4 4 0 100-8 4 4 0 000 8zM4 20a8 8 0 0116 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              </div>
+              <h3>פרילנסרים</h3>
+              <p>עובדים עם ChatGPT, Claude ועוד — ומשלמים מכמה חשבונות בלי מעקב מסודר.</p>
+            </article>
+            <article class="audience-card">
+              <div class="audience-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M12 19V5M5 12l7-7 7 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <h3>מאמנים ויועצים</h3>
+              <p>משתמשים בכלי AI לתכנים, הצעות ומעקב לקוחות — ורוצים לדעת מה באמת שווה.</p>
+            </article>
+            <article class="audience-card">
+              <div class="audience-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M7 15l3-4 2 2 3-4 2 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+              <h3>יוצרי תוכן</h3>
+              <p>Canva, Midjourney ודומיהם — מנויים שנערמים, וקל לשכוח מה פעיל ומה לא.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- How it works -->
+      <section id="how" aria-labelledby="how-title">
+        <div class="container">
+          <div class="center reveal">
+            <span class="section-label">3 צעדים</span>
+            <h2 class="section-title" id="how-title">איך זה עובד</h2>
+            <p class="section-lead">פשוט, ממוקד, ורק על מה שקשור לחשבוניות של כלי AI.</p>
+          </div>
+          <div class="steps reveal">
+            <article class="step">
+              <div class="step-num">1</div>
+              <h3>מחברים Gmail</h3>
+              <p>גישה לקריאה בלבד — לזיהוי חשבוניות וקבלות רלוונטיות. בלי לשנות או למחוק מיילים.</p>
+            </article>
+            <article class="step">
+              <div class="step-num">2</div>
+              <h3>Star AI מזהה מנויים</h3>
+              <p>המערכת מחפשת רק חשבוניות וקבלות של כלי AI — לא סורקת את כל תיבת הדואר לכל מטרה.</p>
+            </article>
+            <article class="step">
+              <div class="step-num">3</div>
+              <h3>מקבלים תמונה + המלצות</h3>
+              <p>הוצאות במבט אחד, והמלצות חיסכון מחפיפות ומנויים שאפשר לבחון מחדש.</p>
+            </article>
+          </div>
+          <div style="text-align:center;margin-top:2rem" class="reveal">
+            <a class="btn btn-primary btn-lg" href="https://star-ai.co.il/" rel="noopener">חיבור Gmail ובדיקת ההוצאות</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- What you get -->
+      <section id="features" aria-labelledby="features-title">
+        <div class="container">
+          <div class="reveal">
+            <span class="section-label">מה מקבלים</span>
+            <h2 class="section-title" id="features-title">מה תראו בדשבורד</h2>
+            <p class="section-lead">לא עוד ניחושים — תמונת הוצאות מבוססת על מה שבאמת מגיע למייל שלכם כחשבונית/קבלה של כלי AI.</p>
+          </div>
+          <div class="features-layout">
+            <div class="feature-list reveal">
+              <div class="feature-item">
+                <div class="feature-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M4 19V5m0 14h16M8 15V9m4 6V7m4 8v-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                </div>
+                <div>
+                  <h3>סיכום הוצאות</h3>
+                  <p>תצוגה חודשית ושנתית של מה שזוהה ממנויי כלי AI.</p>
+                </div>
+              </div>
+              <div class="feature-item">
+                <div class="feature-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="currentColor" stroke-width="1.8"/></svg>
+                </div>
+                <div>
+                  <h3>רשימת כלים שזוהו</h3>
+                  <p>אילו מנויי AI נמצאו בחשבוניות — במקום אחד.</p>
+                </div>
+              </div>
+              <div class="feature-item">
+                <div class="feature-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M12 8c-2.2 0-4 1.3-4 3s1.8 3 4 3 4 1.3 4 3-1.8 3-4 3m0-12V4m0 16v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                </div>
+                <div>
+                  <h3>המלצות חיסכון</h3>
+                  <p>הצעות סביב חפיפות ומנויים שאפשר לבחון — כדי לא לשלם פעמיים על אותו צורך.</p>
+                </div>
+              </div>
+              <div class="feature-item">
+                <div class="feature-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M3 8l9 6 9-6M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+                </div>
+                <div>
+                  <h3>מיקוד בחשבוניות AI</h3>
+                  <p>חיפוש ממוקד בחשבוניות וקבלות של כלי AI — לא פתיחת PDFים ולא סריקה כללית של כל המיילים.</p>
+                </div>
+              </div>
+            </div>
+            <aside class="value-panel reveal" aria-label="דוגמת סיכום">
+              <h3>דוגמת סיכום בדשבורד</h3>
+              <div class="stat-row">
+                <span class="label">הוצאה חודשית</span>
+                <span class="val">₪1,200</span>
+              </div>
+              <div class="stat-row">
+                <span class="label">הוצאה שנתית</span>
+                <span class="val">₪14,400</span>
+              </div>
+              <div class="stat-row">
+                <span class="label">כלי AI שזוהו</span>
+                <span class="val">12</span>
+              </div>
+              <div class="stat-row">
+                <span class="label">חיסכון אפשרי מחפיפות</span>
+                <span class="val">₪1,270</span>
+              </div>
+              <p class="panel-note">* כל המספרים בלוח זה הם דוגמאות להמחשה בלבד.</p>
+            </aside>
+          </div>
+        </div>
+      </section>
+
+      <!-- Privacy -->
+      <section id="privacy" aria-labelledby="privacy-title">
+        <div class="container">
+          <div class="privacy-box reveal">
+            <div>
+              <span class="section-label">פרטיות ואמון</span>
+              <h2 class="section-title" id="privacy-title">קריאה בלבד. רק מה שרלוונטי.</h2>
+              <p class="section-lead" style="margin-bottom:1rem">בנינו את Star AI Tracker סביב גישה מינימלית למידע — כדי שתוכלו לבדוק הוצאות בלי לתת יותר מדי.</p>
+              <a class="btn btn-ghost" href="https://star-ai.co.il/" rel="noopener">לפרטים באתר הרשמי</a>
+            </div>
+            <div class="privacy-points">
+              <div class="privacy-point">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" stroke-width="1.8"/></svg>
+                <div>
+                  <strong>גישה לקריאה בלבד</strong>
+                  המערכת לא משנה, לא מוחקת ולא שולחת מיילים בשמכם.
+                </div>
+              </div>
+              <div class="privacy-point">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h10M4 18h7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                <div>
+                  <strong>רק נושא ותוכן של הודעות רלוונטיות</strong>
+                  קריאה של subject/body בהודעות שקשורות לחשבוניות/קבלות של כלי AI.
+                </div>
+              </div>
+              <div class="privacy-point">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zM14 2v6h6" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 15l6-6M15 15L9 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                <div>
+                  <strong>לא פותחים PDFים</strong>
+                  אין פתיחה של קבצי PDF מצורפים כחלק מהתהליך המתואר.
+                </div>
+              </div>
+              <div class="privacy-point">
+                <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                <div>
+                  <strong>חיפוש ממוקד</strong>
+                  חיפוש מכוון לחשבוניות וקבלות של כלי AI — לא סריקה כללית של כל תיבת הדואר לכל מטרה.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section id="faq" aria-labelledby="faq-title">
+        <div class="container">
+          <div class="center reveal">
+            <span class="section-label">שאלות נפוצות</span>
+            <h2 class="section-title" id="faq-title">תשובות ישירות</h2>
+            <p class="section-lead">על בסיס מה שהמוצר עושה בפועל — בלי הבטחות שלא כתובות כאן.</p>
+          </div>
+          <div class="faq-list reveal" role="list">
+            <div class="faq-item is-open" role="listitem">
+              <button class="faq-q" type="button" aria-expanded="true">
+                מה Star AI Tracker עושה בפועל?
+                <span class="faq-icon" aria-hidden="true">+</span>
+              </button>
+              <div class="faq-a">
+                מחברים Gmail בגישה לקריאה בלבד. המערכת מזהה חשבוניות וקבלות של כלי AI, ומציגה תמונת הוצאות והמלצות חיסכון סביב חפיפות ומנויים שאפשר לבחון.
+              </div>
+            </div>
+            <div class="faq-item" role="listitem">
+              <button class="faq-q" type="button" aria-expanded="false">
+                האם אתם קוראים את כל המיילים שלי?
+                <span class="faq-icon" aria-hidden="true">+</span>
+              </button>
+              <div class="faq-a">
+                הגישה היא לקריאה בלבד, והמיקוד הוא בחשבוניות/קבלות של כלי AI. נקראים נושא ותוכן של הודעות רלוונטיות — לא פתיחת PDFים, ולא סריקה כללית לכל מטרה.
+              </div>
+            </div>
+            <div class="faq-item" role="listitem">
+              <button class="faq-q" type="button" aria-expanded="false">
+                למי זה מיועד?
+                <span class="faq-icon" aria-hidden="true">+</span>
+              </button>
+              <div class="faq-a">
+                בעיקר לבעלי עסקים קטנים, פרילנסרים, מאמנים ויוצרי תוכן בישראל שמשלמים על כמה כלי AI (למשל ChatGPT, Claude, Midjourney, Canva) ומאבדים מעקב אחרי חפיפות ומנויים שלא בשימוש.
+              </div>
+            </div>
+            <div class="faq-item" role="listitem">
+              <button class="faq-q" type="button" aria-expanded="false">
+                המספרים בדף — אלה התוצאות שלי?
+                <span class="faq-icon" aria-hidden="true">+</span>
+              </button>
+              <div class="faq-a">
+                לא. המספרים כמו ₪1,200 לחודש, ₪14,400 לשנה, 12 כלים ו־₪1,270 חיסכון אפשרי הם דוגמאות להמחשה בלבד. התוצאות שלכם תלויות במיילים ובמנויים שלכם.
+              </div>
+            </div>
+            <div class="faq-item" role="listitem">
+              <button class="faq-q" type="button" aria-expanded="false">
+                מי עומד מאחורי STAR AI?
+                <span class="faq-icon" aria-hidden="true">+</span>
+              </button>
+              <div class="faq-a">
+                STAR AI / Star AI Tracker הוא חלק מעולם Star Ai של כוכב אייזן (Kohav Ayzen) — קהילה וכלים פרקטיים של AI לעסקים קטנים בישראל. לפרטים נוספים ולחיבור: האתר הרשמי.
+              </div>
+            </div>
+            <div class="faq-item" role="listitem">
+              <button class="faq-q" type="button" aria-expanded="false">
+                איפה אפשר להתחיל?
+                <span class="faq-icon" aria-hidden="true">+</span>
+              </button>
+              <div class="faq-a">
+                באתר הרשמי: <a href="https://star-ai.co.il/" rel="noopener" style="color:var(--accent);text-decoration:underline">star-ai.co.il</a> — חיבור Gmail ובדיקת ההוצאות.
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Final CTA -->
+      <section class="final-cta" aria-labelledby="final-title">
+        <div class="container">
+          <div class="final-card reveal">
+            <div class="orb-mini" aria-hidden="true"></div>
+            <h2 id="final-title">מוכנים לראות כמה יוצא על AI?</h2>
+            <p>חברו Gmail בגישה לקריאה בלבד, קבלו תמונת הוצאות על כלי AI, ובדקו איפה אפשר לחסוך — בלי לנחש.</p>
+            <div class="hero-ctas">
+              <a class="btn btn-primary btn-lg" href="https://star-ai.co.il/" rel="noopener">חיבור Gmail ובדיקת ההוצאות</a>
+              <a class="btn btn-ghost btn-lg" href="https://star-ai.co.il/" rel="noopener">לאתר STAR AI</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container footer-inner">
+        <div>
+          <div class="logo" style="margin-bottom:0.65rem;justify-content:center">
+            <span class="logo-mark" aria-hidden="true" style="width:28px;height:28px;border-radius:8px">
+              <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M12 2l2.4 7.2H22l-6 4.8 2.3 7L12 16.8 5.7 21l2.3-7-6-4.8h7.6L12 2z" fill="#1a1205"/></svg>
+            </span>
+            STAR AI
+          </div>
+          <p>© 2026 STAR AI — כל הזכויות שמורות</p>
+          <p class="footer-disclaimer" style="margin-top:0.65rem">
+            המידע בדף זה מבוסס על דיווחי משתמשים ותיאור המוצר, ואינו מהווה הצעה מחייבת.
+            מספרי הדשבורד המוצגים הם דוגמאות להמחשה בלבד.
+          </p>
+        </div>
+        <nav class="footer-links" aria-label="קישורים בתחתית">
+          <a href="https://star-ai.co.il/" rel="noopener">האתר הרשמי</a>
+          <a href="https://star-ai.co.il/" rel="noopener">בלוג / תכנים</a>
+          <a href="#privacy">פרטיות</a>
+          <a href="#faq">שאלות נפוצות</a>
+        </nav>
+      </div>
+    </footer>
+  </div>
+
+  <div class="sticky-cta" id="sticky-cta" aria-hidden="true">
+    <a class="btn btn-primary" href="https://star-ai.co.il/" rel="noopener">חיבור Gmail ובדיקת ההוצאות</a>
+  </div>
+
+  <script>
+    (function () {
+      var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      /* FAQ accordion */
+      document.querySelectorAll(".faq-item").forEach(function (item) {
+        var btn = item.querySelector(".faq-q");
+        if (!btn) return;
+        btn.addEventListener("click", function () {
+          var open = item.classList.contains("is-open");
+          document.querySelectorAll(".faq-item.is-open").forEach(function (el) {
+            el.classList.remove("is-open");
+            var b = el.querySelector(".faq-q");
+            if (b) b.setAttribute("aria-expanded", "false");
+          });
+          if (!open) {
+            item.classList.add("is-open");
+            btn.setAttribute("aria-expanded", "true");
+          }
+        });
+      });
+
+      /* Reveal on scroll */
+      var reveals = document.querySelectorAll(".reveal");
+      if (reduce) {
+        reveals.forEach(function (el) { el.classList.add("visible"); });
+      } else if ("IntersectionObserver" in window) {
+        var io = new IntersectionObserver(function (entries) {
+          entries.forEach(function (e) {
+            if (e.isIntersecting) {
+              e.target.classList.add("visible");
+              io.unobserve(e.target);
+            }
+          });
+        }, { threshold: 0.12, rootMargin: "0px 0px -40px 0px" });
+        reveals.forEach(function (el) { io.observe(el); });
+      } else {
+        reveals.forEach(function (el) { el.classList.add("visible"); });
+      }
+
+      /* Sticky CTA after hero */
+      var sticky = document.getElementById("sticky-cta");
+      var hero = document.querySelector(".hero");
+      if (sticky && hero) {
+        document.body.classList.add("has-sticky");
+        if ("IntersectionObserver" in window) {
+          var sio = new IntersectionObserver(function (entries) {
+            entries.forEach(function (e) {
+              if (e.isIntersecting) {
+                sticky.classList.remove("visible");
+                sticky.setAttribute("aria-hidden", "true");
+              } else {
+                sticky.classList.add("visible");
+                sticky.setAttribute("aria-hidden", "false");
+              }
+            });
+          }, { threshold: 0.15 });
+          sio.observe(hero);
+        }
+      }
+
+      /* Pointer parallax on 3D stage */
+      var stage = document.getElementById("dash-stage");
+      var scene = document.getElementById("dash-scene");
+      if (stage && scene && !reduce) {
+        var ticking = false;
+        var targetX = 0, targetY = 0;
+        stage.addEventListener("pointermove", function (e) {
+          var rect = stage.getBoundingClientRect();
+          var nx = (e.clientX - rect.left) / rect.width - 0.5;
+          var ny = (e.clientY - rect.top) / rect.height - 0.5;
+          targetX = nx;
+          targetY = ny;
+          if (!ticking) {
+            ticking = true;
+            requestAnimationFrame(function () {
+              var rotY = -12 + targetX * 16;
+              var rotX = 8 - targetY * 12;
+              scene.style.transform =
+                "rotateY(" + rotY + "deg) rotateX(" + rotX + "deg) translateZ(10px)";
+              ticking = false;
+            });
+          }
+        });
+        stage.addEventListener("pointerleave", function () {
+          scene.style.transform = "";
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
